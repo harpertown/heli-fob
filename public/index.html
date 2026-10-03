@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<meta name="theme-color" content="#10131c" />
+		<meta name="description" content="Chopper Run - a tiny Pyxel helicopter landing game." />
+		<title>Chopper Run</title>
+		<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+		<script src="https://cdn.jsdelivr.net/gh/kitao/pyxel@v2.8.7/wasm/pyxel.js"></script>
+		<style>
+			:root {
+				color-scheme: dark;
+				font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+				background: #10131c;
+				color: #f7f4ea;
+			}
+
+			* {
+				box-sizing: border-box;
+			}
+
+			body {
+				margin: 0;
+				min-height: 100vh;
+				display: grid;
+				place-items: center;
+				padding: 24px;
+				background: radial-gradient(circle at top, #27334a, #10131c 65%);
+			}
+
+			main {
+				width: min(100%, 860px);
+				text-align: center;
+			}
+
+			h1 {
+				margin: 0 0 8px;
+				font-size: clamp(1.5rem, 4vw, 2.4rem);
+				letter-spacing: 0.14em;
+			}
+
+			p {
+				margin: 0 0 20px;
+				color: #b9c2d4;
+				font-size: 0.85rem;
+			}
+
+			#pyxel-screen {
+				width: min(100%, 768px);
+				margin: 0 auto;
+				overflow: hidden;
+				border: 4px solid #56617a;
+				border-radius: 8px;
+				background: #000;
+				box-shadow: 0 18px 55px rgb(0 0 0 / 35%);
+				aspect-ratio: 256 / 160;
+			}
+
+			#pyxel-screen canvas {
+				display: block;
+				width: 100%;
+				height: 100%;
+				image-rendering: pixelated;
+			}
+
+			.controls {
+				margin-top: 18px;
+				color: #d5dbea;
+				font-size: 0.78rem;
+				line-height: 1.7;
+			}
+
+			kbd {
+				border: 1px solid #56617a;
+				border-radius: 4px;
+				padding: 2px 6px;
+				background: #1c2435;
+				color: #fff;
+			}
+
+			@media (max-width: 520px) {
+				body {
+					padding: 16px 10px;
+				}
+
+				#pyxel-screen {
+					border-width: 2px;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<main>
+			<h1>CHOPPER RUN</h1>
+			<p>Fly from the A pad to the H pad without touching the trees.</p>
+			<div id="pyxel-screen">
+				<pyxel-run root="." name="main.py" gamepad="enabled"></pyxel-run>
+			</div>
+			<div class="controls">
+				<kbd>SPACE</kbd>/<kbd>W</kbd>/<kbd>↑</kbd> throttle
+				&nbsp; <kbd>A</kbd>/<kbd>←</kbd> and <kbd>D</kbd>/<kbd>→</kbd> steer
+				&nbsp; <kbd>R</kbd> restart
+			</div>
+		</main>
+	</body>
+</html>
