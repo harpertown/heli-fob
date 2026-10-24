@@ -24,6 +24,15 @@ PAD_SURFACE_Y = GROUND_Y - 2
 GEAR_OFFSET = 7
 HIGH_ALTITUDE_Y = HEIGHT // 2
 HIGH_ALTITUDE_FUEL_MULTIPLIER = 7.0
+WATER_STEP = 8
+WATER_SPRING = 0.018
+WATER_DAMPING = 0.12
+WATER_SPREAD = 0.045
+WATER_END_FORCE = 0.14
+WATER_START_AMPLITUDE = 0.47
+WATER_END_AMPLITUDE = 6.0
+WATER_END_X = WORLD_LENGTH - 20
+PLATFORM_HALF_WIDTH = 34
 TREE_OBSTACLES = (
     (220, 48),
     (390, 64),
@@ -46,6 +55,7 @@ class ChopperGame:
     def reset(self):
         self.level = "mission1"
         self.reset_flight()
+        self.reset_water()
         self.mission_unlocked = True
         self.mission_two_unlocked = True
         self.mission_three_unlocked = True
@@ -70,10 +80,12 @@ class ChopperGame:
         self.high_wind = 0.0
         self.fuel_burn_rate = 0.0
         self.rescue_progress = 0
+        self.water_splash = 0
 
     def start_level(self, level):
         self.level = level
         self.reset_flight()
+        self.reset_water()
         self.state = "ready"
 
     def level_goal_x(self):
@@ -94,6 +106,60 @@ class ChopperGame:
 
     def is_rescue_mission(self):
         return self.level == "mission6"
+
+    def is_water_mission(self):
+        return self.is_sea_mission() or self.is_rescue_mission()
+
+    def reset_water(self):
+        water_start = self.sea_start_x()
+        water_end = WATER_END_X + WATER_STEP
+        self.water_base_y = GROUND_Y
+        self.water_heights = [
+            float(self.water_base_y)
+            for _ in range((water_end - water_start) // WATER_STEP + 1)
+        ]
+        self.water_velocities = [0.0] * len(self.water_heights)
+        self.water_time = 0
+        center = len(self.water_heights) // 3
+        self.water_velocities[center] = -0.75
+
+    def update_water(self):
+        if not self.is_water_mission():
+            return
+        self.water_time += 1
+        heights = self.water_heights
+        velocities = self.water_velocities
+        next_heights = heights[:]
+        next_velocities = velocities[:]
+        for index in range(1, len(heights) - 1):
+            column_progress = index / (len(heights) - 1)
+            displacement = heights[index] - self.water_base_y
+            neighbor_force = heights[index - 1] + heights[index + 1] - 2 * heights[index]
+            swell_force = (
+                WATER_END_FORCE
+                * (0.12 + 0.88 * column_progress**2)
+                * (0.55 + 0.45 * math.sin(self.water_time / 23 + index / 4))
+            )
+            acceleration = (
+                -WATER_SPRING * displacement
+                - WATER_DAMPING * velocities[index]
+                + WATER_SPREAD * neighbor_force
+                - swell_force
+            )
+            next_velocities[index] = velocities[index] + acceleration
+            next_heights[index] = heights[index] + next_velocities[index]
+        pulse_index = 2 + (self.water_time // 90) % (len(heights) - 4)
+        if self.water_time % 90 == 0:
+            next_velocities[pulse_index] -= 0.38
+        self.water_heights = next_heights
+        self.water_velocities = next_velocities
+
+    def water_amplitude(self, world_x):
+        progress = (world_x - self.sea_start_x()) / (GOAL_PAD_X - self.sea_start_x())
+        progress = max(0.0, min(1.0, progress))
+        return WATER_START_AMPLITUDE + (
+            WATER_END_AMPLITUDE - WATER_START_AMPLITUDE
+        ) * progress
 
     def spotlight_bounds(self, y, hx, spotlight_top_y):
         delta = y - spotlight_top_y
@@ -157,14 +223,25 @@ class ChopperGame:
         return START_PAD_X + 180
 
     def sea_wave_top(self, world_x):
-        progress = (world_x - self.sea_start_x()) / (GOAL_PAD_X - self.sea_start_x())
-        progress = max(0.0, min(1.0, progress))
-        amplitude = 4.0 + 108.0 * progress
-        phase = (self.rotor / 20 + world_x / 72) % math.tau
-        shoulder = math.exp(-((phase - 1.55) / 1.05) ** 2)
-        curling_face = math.exp(-((phase - 2.25) / 0.42) ** 2)
-        wave_height = amplitude * (0.12 + 0.70 * shoulder + 0.42 * curling_face)
-        return GROUND_Y - int(wave_height)
+        relative_x = max(
+            0.0,
+            min(WATER_END_X - self.sea_start_x(), world_x - self.sea_start_x()),
+        )
+        position = relative_x / WATER_STEP
+        left_index = min(int(position), len(self.water_heights) - 2)
+        blend = position - left_index
+        height = (
+            self.water_heights[left_index] * (1 - blend)
+            + self.water_heights[left_index + 1] * blend
+        )
+        displacement = height - self.water_base_y
+        return max(
+            8,
+            min(
+                HEIGHT - 1,
+                int(self.water_base_y + displacement * self.water_amplitude(world_x)),
+            ),
+        )
 
     def hover_throttle_required(self):
         fuel_efficiency = 0.75 + 0.25 * (self.fuel / 100)
@@ -200,6 +277,7 @@ class ChopperGame:
                 self.state = "mission_select"
                 self.selected_mission = 1
             return
+        self.update_water()
         if self.state == "mission_complete":
             if pyxel.btnp(pyxel.KEY_SPACE):
                 self.state = "mission_select"
@@ -304,7 +382,12 @@ class ChopperGame:
         if tree_top is not None:
             self.start_crash(tree_top)
             return
-        if self.is_sea_mission() and self.sea_start_x() <= self.x < GOAL_PAD_X - 40:
+        on_platform = abs(self.x - self.level_goal_x()) <= PLATFORM_HALF_WIDTH
+        if (
+            self.is_water_mission()
+            and not on_platform
+            and self.sea_start_x() <= self.x < WATER_END_X
+        ):
             wave_step = 4
             wave_index = round((self.x - self.sea_start_x()) / wave_step)
             wave_x = self.sea_start_x() + wave_index * wave_step
@@ -368,6 +451,8 @@ class ChopperGame:
     def start_crash(self, impact_surface_y):
         self.y = impact_surface_y - GEAR_OFFSET
         self.collective = 0.0
+        if self.is_water_mission() and impact_surface_y < GROUND_Y:
+            self.water_splash = 8
         impact_direction = 1 if self.vx >= 0 else -1
         self.pitch_rate += impact_direction * (0.012 + abs(self.vy) * 0.018)
         self.state = "crashed"
@@ -375,6 +460,7 @@ class ChopperGame:
     def update_crash(self):
         """Simulate a tumbling wreck after an impact."""
         self.rotor += 1
+        self.water_splash = max(0, self.water_splash - 1)
         self.collective = 0.0
         self.rotor_lift *= 0.94
         self.vy += GRAVITY
@@ -443,7 +529,7 @@ class ChopperGame:
                     pyxel.circ(hill_x, hill_y, 34, 3)
                     pyxel.circ(hill_x + 18, hill_y + 5, 27, 3)
                 pyxel.line(0, 145, WIDTH, 145, 11)
-        terrain_color = 12 if self.is_sea_mission() else (1 if night else 11)
+        terrain_color = 12 if self.is_water_mission() else (1 if night else 11)
         horizon_color = 0 if night else 10
         pyxel.rect(0, GROUND_Y, WIDTH - 1, HEIGHT - GROUND_Y, terrain_color)
         if not self.is_sea_mission():
@@ -459,51 +545,64 @@ class ChopperGame:
             if -4 <= sx < WIDTH:
                 if not self.is_sea_mission():
                     pyxel.line(sx, GROUND_Y + 5, sx - 5, GROUND_Y + 9, 1 if night else 3)
-        if self.is_sea_mission() or self.is_rescue_mission():
-            if self.is_sea_mission():
-                wave_step = 4
-                for wave_world_x in range(self.sea_start_x(), GOAL_PAD_X + wave_step, wave_step):
-                    wave_x = int(wave_world_x - self.camera)
-                    if wave_x < -wave_step or wave_x > WIDTH:
-                        continue
-                    wave_top = self.sea_wave_top(wave_world_x)
-                    pyxel.rect(
+        if self.is_water_mission():
+            wave_step = 4
+            for wave_world_x in range(self.sea_start_x(), WATER_END_X + wave_step, wave_step):
+                wave_x = int(wave_world_x - self.camera)
+                if wave_x < -wave_step or wave_x > WIDTH:
+                    continue
+                wave_top = self.sea_wave_top(wave_world_x)
+                pyxel.rect(
+                    wave_x,
+                    wave_top,
+                    wave_step,
+                    HEIGHT - wave_top,
+                    12,
+                )
+                wave_index = min(
+                    len(self.water_heights) - 2,
+                    max(0, int((wave_world_x - self.sea_start_x()) / WATER_STEP)),
+                )
+                next_wave_top = self.sea_wave_top(wave_world_x + WATER_STEP)
+                slope = next_wave_top - wave_top
+                velocity = (
+                    abs(self.water_velocities[wave_index])
+                    * self.water_amplitude(wave_world_x)
+                )
+                if slope < -0.2 or velocity > 0.16:
+                    foam_y = max(0, wave_top - 1)
+                    pyxel.line(wave_x, foam_y, wave_x + wave_step, foam_y, 7)
+                if slope < -0.45:
+                    inner_y = min(GROUND_Y - 3, wave_top + 8)
+                    pyxel.line(wave_x, inner_y, wave_x + wave_step, inner_y, 6)
+                    pyxel.line(
                         wave_x,
-                        wave_top,
-                        wave_step,
-                        HEIGHT - wave_top,
-                        12,
+                        inner_y + 1,
+                        wave_x + wave_step,
+                        min(GROUND_Y - 2, inner_y + 3),
+                        6,
                     )
-                    phase = (self.rotor / 20 + wave_world_x / 72) % math.tau
-                    curling_face = math.exp(-((phase - 2.25) / 0.42) ** 2)
-                    shoulder = math.exp(-((phase - 1.55) / 1.05) ** 2)
-                    if shoulder > 0.32:
-                        foam_y = max(0, wave_top - 1)
-                        pyxel.line(wave_x, foam_y, wave_x + wave_step, foam_y, 7)
-                    if curling_face > 0.28:
-                        inner_y = min(GROUND_Y - 3, wave_top + int(5 + curling_face * 9))
-                        pyxel.line(wave_x, inner_y, wave_x + wave_step, inner_y, 6)
+                    if slope < -0.8:
                         pyxel.line(
-                            wave_x,
-                            inner_y + 1,
-                            wave_x + wave_step,
-                            min(GROUND_Y - 2, inner_y + 3),
-                            6,
+                            wave_x + 1,
+                            max(0, foam_y - 1),
+                            wave_x + 3,
+                            max(0, foam_y - 3),
+                            7,
                         )
-                        if curling_face > 0.72:
-                            pyxel.line(
-                                wave_x + 1,
-                                max(0, foam_y - 1),
-                                wave_x + 3,
-                                max(0, foam_y - 3),
-                                7,
-                            )
-                            pyxel.pset(wave_x + 2, max(0, foam_y - 5), 7)
-            else:
-                for i in range(12):
-                    wave_x = (i * 31 - int(self.camera * 0.4)) % (WIDTH + 20) - 10
-                    wave_y = GROUND_Y + 6 + (i % 3) * 5
-                    pyxel.line(wave_x, wave_y, wave_x + 12, wave_y, 5)
+                        pyxel.pset(wave_x + 2, max(0, foam_y - 5), 7)
+            platform_screen = int(self.level_goal_x() - self.camera)
+            if -PLATFORM_HALF_WIDTH < platform_screen < WIDTH + PLATFORM_HALF_WIDTH:
+                platform_left = platform_screen - PLATFORM_HALF_WIDTH
+                platform_width = PLATFORM_HALF_WIDTH * 2 + 1
+                pyxel.rect(platform_left, GROUND_Y - 5, platform_width, 3, 4)
+                pyxel.line(
+                    platform_left,
+                    GROUND_Y - 2,
+                    platform_left + platform_width - 1,
+                    GROUND_Y - 2,
+                    10,
+                )
         if self.is_motorway_mission():
             for i in range(6):
                 powerline_x = int(self.motorway_powerline_x(i) - self.camera)
@@ -599,6 +698,11 @@ class ChopperGame:
 
         hx, hy = int(self.x - self.camera), int(self.y)
         self.draw_helicopter(hx, hy)
+        if self.water_splash:
+            splash_width = 4 + (8 - self.water_splash) * 2
+            splash_y = hy + GEAR_OFFSET + 1
+            pyxel.line(hx - splash_width, splash_y, hx - 2, splash_y - 3, 7)
+            pyxel.line(hx + 2, splash_y - 3, hx + splash_width, splash_y, 7)
         if self.is_rescue_mission():
             target_screen = int(self.rescue_target_x() - self.camera)
             if -20 < target_screen < WIDTH + 20:
