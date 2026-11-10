@@ -1,4 +1,5 @@
 node_modules/
+build/
 worker-configuration.d.ts
 .wrangler/
 __pycache__/

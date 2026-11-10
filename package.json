@@ -4,6 +4,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "react-router dev",
+		"build": "react-router build",
 		"deploy": "wrangler deploy",
 		"typecheck": "wrangler types && tsc --noEmit"
 	},
