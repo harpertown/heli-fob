@@ -219,6 +219,14 @@ def format_score(prefix, result):
 class ChopperGame:
     def __init__(self):
         pyxel.init(WIDTH, HEIGHT, title="CHOPPER RUN", fps=30)
+        self.menu_art_loaded = False
+        for menu_image_path in ("menu-background.png", "public/menu-background.png"):
+            try:
+                pyxel.images[0].load(0, 0, menu_image_path)
+                self.menu_art_loaded = True
+                break
+            except Exception:
+                continue
         self.init_audio()
         self.reset()
         pyxel.run(self.update, self.draw)
@@ -243,6 +251,7 @@ class ChopperGame:
                 self.rotor_audio = None
         self.rotor_playing = False
         self.rotor_note = ""
+        self.rotor_mix = 0.0
         self.wind_playing = False
         self.wind_band = -1
 
@@ -891,18 +900,18 @@ class ChopperGame:
     def update_audio(self):
         rotor_on = self.state == "flying" and self.fuel > 0
         if self.rotor_audio is not None:
-            self.rotor_audio.volume = 0.22 + 0.34 * self.rotor_lift
-            self.rotor_audio.playbackRate = 0.90 + 0.24 * self.rotor_lift
-            if rotor_on and not self.rotor_playing:
-                self.rotor_audio.currentTime = 0
+            target_mix = 1.0 if rotor_on else 0.0
+            self.rotor_mix += (target_mix - self.rotor_mix) * 0.14
+            self.rotor_audio.volume = 0.46 * self.rotor_mix * (0.78 + 0.22 * self.rotor_lift)
+            self.rotor_audio.playbackRate = 0.92 + 0.12 * self.rotor_lift
+            if (rotor_on or self.rotor_mix > 0.015) and not self.rotor_playing:
                 try:
                     self.rotor_audio.play()
                     self.rotor_playing = True
                 except Exception:
                     self.rotor_audio = None
-            elif not rotor_on and self.rotor_playing:
+            elif self.rotor_mix <= 0.015 and self.rotor_playing:
                 self.rotor_audio.pause()
-                self.rotor_audio.currentTime = 0
                 self.rotor_playing = False
         else:
             if not rotor_on:
@@ -1283,15 +1292,20 @@ class ChopperGame:
         pyxel.text(x + 15, y + 14, status, 7 if unlocked else 8)
 
     def draw_intro(self):
-        pyxel.cls(0)
-        pyxel.rect(24, 30, 208, 96, 0)
-        pyxel.rectb(24, 30, 208, 96, 7)
+        if self.menu_art_loaded:
+            pyxel.blt(0, 0, 0, 0, 0, WIDTH, HEIGHT)
+        else:
+            pyxel.cls(1)
         title = "HELI FOB"
         subtitle = "FLIGHT OPERATIONS"
         hint = "SPACE TO CONTINUE"
-        pyxel.text((WIDTH - len(title) * 4) // 2, 52, title, 10)
-        pyxel.text((WIDTH - len(subtitle) * 4) // 2, 70, subtitle, 7)
-        pyxel.text((WIDTH - len(hint) * 4) // 2, 94, hint, 11)
+        title_x = 12
+        pyxel.text(title_x + 1, 47, title, 1)
+        pyxel.text(title_x, 46, title, 10)
+        pyxel.text(title_x, 60, subtitle, 7)
+        pyxel.rect(8, 126, 112, 20, 1)
+        pyxel.rectb(8, 126, 112, 20, 6)
+        pyxel.text(14, 133, hint, 11)
 
     def draw_helicopter(self, x, y):
         # A single filled fuselage that rotates with pitch.
