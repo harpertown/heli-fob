@@ -3,106 +3,43 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-		<meta name="theme-color" content="#10131c" />
-		<meta name="description" content="Chopper Run - a tiny Pyxel helicopter landing game." />
-		<title>Chopper Run</title>
-		<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+		<meta name="theme-color" content="#0c1720" />
+		<meta name="description" content="Fly the Heli FOB campaign: land softly, cross rough seas, and bring everyone home." />
+		<title>Heli FOB — Flight Operations</title>
 		<script src="https://cdn.jsdelivr.net/gh/kitao/pyxel@v2.8.7/wasm/pyxel.js"></script>
 		<style>
-			:root {
-				color-scheme: dark;
-				font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-				background: #10131c;
-				color: #f7f4ea;
-			}
-
-			* {
-				box-sizing: border-box;
-			}
-
-			body {
-				margin: 0;
-				min-height: 100vh;
-				display: grid;
-				place-items: center;
-				padding: 24px;
-				background: radial-gradient(circle at top, #27334a, #10131c 65%);
-			}
-
-			main {
-				width: min(100%, 860px);
-				text-align: center;
-			}
-
-			h1 {
-				margin: 0 0 8px;
-				font-size: clamp(1.5rem, 4vw, 2.4rem);
-				letter-spacing: 0.14em;
-			}
-
-			p {
-				margin: 0 0 20px;
-				color: #b9c2d4;
-				font-size: 0.85rem;
-			}
-
-			#pyxel-screen {
-				width: min(100%, 768px);
-				margin: 0 auto;
-				overflow: hidden;
-				border: 4px solid #56617a;
-				border-radius: 8px;
-				background: #000;
-				box-shadow: 0 18px 55px rgb(0 0 0 / 35%);
-				aspect-ratio: 256 / 160;
-			}
-
-			#pyxel-screen canvas {
-				display: block;
-				width: 100%;
-				height: 100%;
-				image-rendering: pixelated;
-			}
-
-			.controls {
-				margin-top: 18px;
-				color: #d5dbea;
-				font-size: 0.78rem;
-				line-height: 1.7;
-			}
-
-			kbd {
-				border: 1px solid #56617a;
-				border-radius: 4px;
-				padding: 2px 6px;
-				background: #1c2435;
-				color: #fff;
-			}
-
-			@media (max-width: 520px) {
-				body {
-					padding: 16px 10px;
-				}
-
-				#pyxel-screen {
-					border-width: 2px;
-				}
-			}
+			:root { color-scheme: dark; font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif; background: #0c1720; color: #edf3f1; }
+			* { box-sizing: border-box; }
+			body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 24px; background: linear-gradient(180deg, #1b313eb8, transparent 35rem), #0c1720; }
+			main { width: min(100%, 1120px); }
+			header { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
+			.identity { display: flex; align-items: center; gap: 14px; }
+			.signal { width: 3px; height: 44px; background: #efb44e; box-shadow: 0 0 18px #efb44e66; }
+			.unit { margin: 0 0 3px; color: #92a7af; font: 600 10px ui-monospace, monospace; letter-spacing: .16em; }
+			h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; letter-spacing: -.045em; }
+			.briefing { margin: 0 0 3px; color: #a9bac0; font: 13px ui-monospace, monospace; }
+			.briefing span { color: #e5ad4d; }
+			#screen { padding: 10px; border: 1px solid #526773; background: #162631; box-shadow: 0 24px 80px #0007; }
+			pyxel-run { display: block; width: 100%; overflow: hidden; aspect-ratio: 256 / 160; background: #000; }
+			canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+			.controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px 28px; padding: 16px 6px 12px; border-bottom: 1px solid #32444d; color: #adbdc1; font-size: 12px; }
+			.controls span { display: inline-flex; align-items: center; gap: 6px; }
+			kbd { min-width: 24px; padding: 4px 6px; border: 1px solid #536772; background: #1a2b35; color: #f2f4ed; text-align: center; font: 11px ui-monospace, monospace; }
+			.note { margin: 11px 0 0; color: #71868e; text-align: center; font: 11px ui-monospace, monospace; }
+			@media (max-width: 620px) { body { padding: 12px; } header { align-items: start; flex-direction: column; gap: 10px; margin-bottom: 14px; } .briefing { padding-left: 17px; } #screen { padding: 4px; } .controls { justify-content: flex-start; gap: 10px 17px; } }
 		</style>
 	</head>
 	<body>
 		<main>
-			<h1>CHOPPER RUN</h1>
-			<p>Select a mission, complete the tutorial, then fly Mission 1 from the A pad to the H pad.</p>
-			<div id="pyxel-screen">
-				<pyxel-run root="." name="main.py" gamepad="enabled"></pyxel-run>
+			<header>
+				<div class="identity"><span class="signal" aria-hidden="true"></span><div><p class="unit">COASTAL AIR SERVICE</p><h1>Heli FOB</h1></div></div>
+				<p class="briefing">Flight operations <span>—</span> 8 missions</p>
+			</header>
+			<section id="screen" aria-label="Heli FOB game"><pyxel-run root="." name="main.py" gamepad="enabled"></pyxel-run></section>
+			<div class="controls" aria-label="Game controls">
+				<span><kbd>↑</kbd><kbd>↓</kbd> Collective</span><span><kbd>←</kbd><kbd>→</kbd> Cyclic</span><span><kbd>Space</kbd> Continue / take off</span><span><kbd>R</kbd> Restart mission</span>
 			</div>
-			<div class="controls">
-				<kbd>SPACE</kbd> to start
-				&nbsp; <kbd>↑</kbd>/<kbd>↓</kbd> select / throttle
-				&nbsp; <kbd>←</kbd>/<kbd>→</kbd> steer
-				&nbsp; <kbd>R</kbd> restart
-			</div>
+			<p class="note">Mission progress and best landings save on this device.</p>
 		</main>
 	</body>
 </html>

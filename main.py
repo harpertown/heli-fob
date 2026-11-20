@@ -381,7 +381,11 @@ class ChopperGame:
             swell_force = (
                 WATER_END_FORCE
                 * (0.12 + 0.88 * column_progress**2)
-                * (0.55 + 0.45 * math.sin(self.water_time / 23 + index / 4))
+                * (
+                    0.48
+                    + 0.34 * math.sin(self.water_time / 23 + index / 4)
+                    + 0.18 * math.sin(self.water_time / 37 - index / 7)
+                )
             )
             acceleration = (
                 -WATER_SPRING * displacement
@@ -1006,7 +1010,7 @@ class ChopperGame:
                 wave_top,
                 wave_step,
                 HEIGHT - wave_top,
-                12,
+                1,
             )
             wave_index = min(
                 len(self.water_heights) - 2,
@@ -1014,32 +1018,33 @@ class ChopperGame:
             )
             next_wave_top = self.sea_wave_top(wave_world_x + WATER_STEP)
             slope = next_wave_top - wave_top
+            next_top = self.sea_wave_top(wave_world_x + wave_step)
             velocity = (
                 abs(self.water_velocities[wave_index])
                 * self.water_amplitude(wave_world_x)
             )
-            if slope < -0.2 or velocity > 0.16:
+            # Depth bands and moving glints give the water a clear near-field
+            # surface, while the broken crest follows the actual wave slope.
+            band_y = min(HEIGHT - 1, wave_top + 4 + (wave_world_x // 20) % 3)
+            pyxel.line(wave_x, band_y, wave_x + wave_step - 1, band_y, 5)
+            if (wave_world_x // 12 + self.water_time // 5) % 7 < 3:
+                glint_y = min(HEIGHT - 1, wave_top + 10 + (wave_world_x // 16) % 5)
+                pyxel.line(wave_x + 1, glint_y, wave_x + 3, glint_y, 12)
+            if (wave_world_x // 8 + self.water_time // 3) % 5 == 0:
+                deep_y = min(HEIGHT - 1, wave_top + 20 + (wave_world_x // 24) % 7)
+                pyxel.line(wave_x, deep_y, wave_x + 2, deep_y, 5)
+            breaking = slope < -0.42 or (slope < -0.18 and velocity > 0.20)
+            if breaking:
                 foam_y = max(0, wave_top - 1)
                 pyxel.line(wave_x, foam_y, wave_x + wave_step, foam_y, 7)
-            if slope < -0.45:
-                inner_y = min(GROUND_Y - 3, wave_top + 8)
-                pyxel.line(wave_x, inner_y, wave_x + wave_step, inner_y, 6)
-                pyxel.line(
-                    wave_x,
-                    inner_y + 1,
-                    wave_x + wave_step,
-                    min(GROUND_Y - 2, inner_y + 3),
-                    6,
-                )
-                if slope < -0.8:
-                    pyxel.line(
-                        wave_x + 1,
-                        max(0, foam_y - 1),
-                        wave_x + 3,
-                        max(0, foam_y - 3),
-                        7,
-                    )
-                    pyxel.pset(wave_x + 2, max(0, foam_y - 5), 7)
+                if velocity > 0.32 or slope < -0.7:
+                    spray_x = wave_x + (self.water_time // 2 + wave_world_x) % wave_step
+                    pyxel.pset(spray_x, max(0, foam_y - 1 - int(velocity * 2)), 7)
+            if slope < -0.6:
+                inner_y = min(HEIGHT - 2, wave_top + 8)
+                pyxel.line(wave_x, inner_y, wave_x + wave_step - 1, inner_y + 1, 6)
+            elif next_top - wave_top > 1:
+                pyxel.line(wave_x, wave_top + 2, wave_x + 2, wave_top + 3, 5)
         if not self.is_sea_mission():
             return
         platform_screen = int(self.level_goal_x() - self.camera)

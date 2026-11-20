@@ -1,16 +1,77 @@
 @import "tailwindcss" source(".");
 
-@theme {
-	--font-sans:
-		"Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
-		"Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+:root {
+	font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+	color: #edf3f1;
+	background: #0c1720;
+	font-synthesis: none;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
 }
 
-html,
-body {
-	@apply bg-white dark:bg-gray-950;
+* { box-sizing: border-box; }
 
-	@media (prefers-color-scheme: dark) {
-		color-scheme: dark;
-	}
+html, body { min-height: 100%; margin: 0; }
+
+body {
+	background:
+		linear-gradient(180deg, rgb(27 49 62 / 72%), transparent 35rem),
+		#0c1720;
+}
+
+.flight-page {
+	width: min(100% - 48px, 1120px);
+	min-height: 100vh;
+	margin: 0 auto;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	padding: 44px 0 26px;
+}
+
+.flight-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: end;
+	gap: 24px;
+	margin: 0 0 20px;
+}
+
+.identity { display: flex; align-items: center; gap: 14px; }
+.signal { width: 3px; height: 44px; background: #efb44e; box-shadow: 0 0 18px #efb44e66; }
+.unit-label { margin: 0 0 3px; color: #92a7af; font: 600 10px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .16em; }
+h1 { margin: 0; color: #f2f4ed; font-size: clamp(26px, 4vw, 38px); font-weight: 600; letter-spacing: -.045em; line-height: 1; }
+.briefing { margin: 0 0 3px; color: #a9bac0; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.briefing span { padding: 0 5px; color: #e5ad4d; }
+
+.game-stage { padding: 10px; border: 1px solid #526773; background: #162631; box-shadow: 0 24px 80px #0007; }
+.screen-frame { width: 100%; overflow: hidden; background: #000; aspect-ratio: 256 / 160; }
+.screen-frame pyxel-run { display: block; width: 100%; height: 100%; }
+.screen-frame canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+
+.flight-controls {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 12px 28px;
+	padding: 16px 6px 12px;
+	border-bottom: 1px solid #32444d;
+}
+.flight-controls div { display: flex; align-items: center; gap: 5px; color: #adbdc1; font-size: 12px; }
+kbd { min-width: 24px; padding: 4px 6px; border: 1px solid #536772; background: #1a2b35; color: #f2f4ed; text-align: center; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.flight-controls span { margin-left: 4px; }
+.save-note { margin: 11px 0 0; color: #71868e; text-align: center; font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+@media (max-width: 620px) {
+	.flight-page { width: min(100% - 20px, 560px); justify-content: start; padding: 22px 0 18px; }
+	.flight-header { align-items: start; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+	.briefing { padding-left: 17px; }
+	.game-stage { padding: 4px; }
+	.flight-controls { justify-content: flex-start; gap: 10px 17px; padding-top: 13px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*, *::before, *::after { scroll-behavior: auto !important; }
 }
