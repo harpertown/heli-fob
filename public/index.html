@@ -3,43 +3,140 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-		<meta name="theme-color" content="#0c1720" />
-		<meta name="description" content="Fly the Heli FOB campaign: land softly, cross rough seas, and bring everyone home." />
+		<meta name="theme-color" content="#101a25" />
+		<meta name="description" content="A pixel-art helicopter campaign. Fly eight missions, cross rough seas, and bring everyone home." />
 		<title>Heli FOB — Flight Operations</title>
-		<script src="https://cdn.jsdelivr.net/gh/kitao/pyxel@v2.8.7/wasm/pyxel.js"></script>
+		<script>
+			if (location.protocol === "file:") {
+				document.documentElement.classList.add("file-preview");
+			} else {
+				document.write('<script src="https://cdn.jsdelivr.net/gh/kitao/pyxel@v2.8.7/wasm/pyxel.js"><\/script>');
+			}
+		</script>
 		<style>
-			:root { color-scheme: dark; font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif; background: #0c1720; color: #edf3f1; }
+			:root { color-scheme: dark; font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif; background: #101a25; color: #edf3e7; font-synthesis: none; }
 			* { box-sizing: border-box; }
-			body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 24px; background: linear-gradient(180deg, #1b313eb8, transparent 35rem), #0c1720; }
-			main { width: min(100%, 1120px); }
-			header { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
-			.identity { display: flex; align-items: center; gap: 14px; }
-			.signal { width: 3px; height: 44px; background: #efb44e; box-shadow: 0 0 18px #efb44e66; }
-			.unit { margin: 0 0 3px; color: #92a7af; font: 600 10px ui-monospace, monospace; letter-spacing: .16em; }
-			h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 600; letter-spacing: -.045em; }
-			.briefing { margin: 0 0 3px; color: #a9bac0; font: 13px ui-monospace, monospace; }
-			.briefing span { color: #e5ad4d; }
-			#screen { padding: 10px; border: 1px solid #526773; background: #162631; box-shadow: 0 24px 80px #0007; }
-			pyxel-run { display: block; width: 100%; overflow: hidden; aspect-ratio: 256 / 160; background: #000; }
+			body { min-height: 100vh; margin: 0; background: #101a25; -webkit-font-smoothing: antialiased; }
+			button, a { font: inherit; }
+			main { width: min(100% - 64px, 1120px); min-height: 100vh; margin: 0 auto; display: flex; flex-direction: column; justify-content: center; padding: 30px 0 20px; }
+			.topline, .page-footer { display: flex; align-items: center; justify-content: space-between; font: 11px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; }
+			.topline { padding-bottom: 20px; border-bottom: 1px solid #34464d; color: #9db2ad; }
+			.brand { display: inline-flex; align-items: center; gap: 9px; color: #f2c36c; font-weight: 700; text-decoration: none; }
+			.brand-pixel { width: 12px; height: 12px; background: #f2c36c; box-shadow: 4px 4px 0 #d46f59; }
+			.status { display: inline-flex; align-items: center; gap: 9px; }
+			.status i, .record-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #85c9a9; box-shadow: 0 0 9px #85c9a966; }
+			.hero { display: grid; grid-template-columns: .78fr 1.22fr; align-items: center; gap: 38px; padding: 42px 0 38px; }
+			.copy { padding: 8px 0 8px 16px; }
+			.eyebrow, .label { margin: 0; color: #8da9ae; font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; }
+			h1 { margin: 18px 0 15px; color: #f1f0dc; font: 900 clamp(66px, 9vw, 112px)/.77 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: -.11em; text-shadow: 5px 5px 0 #304c55; }
+			h1 span { color: #f2c36c; }
+			.description { margin: 28px 0 24px; color: #b3c5bf; font-size: 16px; line-height: 1.65; }
+			.launch { min-height: 52px; padding: 0 22px; border: 2px solid #f7d990; background: #e7ad55; box-shadow: 4px 4px 0 #754c40; color: #182630; cursor: pointer; font: 800 13px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; transition: transform 100ms steps(2,end), box-shadow 100ms steps(2,end), background 100ms steps(2,end); }
+			.launch:hover { background: #f4c36c; transform: translate(2px,2px); box-shadow: 2px 2px 0 #754c40; }
+			.launch:active { transform: translate(4px,4px); box-shadow: none; }
+			.launch:focus-visible { outline: 3px solid #84d1c0; outline-offset: 5px; }
+			.button-glyph { margin-right: 8px; font-size: 11px; }
+			.launch-note { margin: 14px 0 0 3px; color: #70898d; font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .14em; }
+			.scene-frame { position: relative; padding: 8px; border: 1px solid #59716e; background: #1b303b; box-shadow: 8px 8px 0 #0b1219; }
+			.scene { display: block; width: 100%; height: auto; image-rendering: pixelated; shape-rendering: crispEdges; }
+			.scene-caption { position: absolute; right: 16px; bottom: 16px; padding: 6px 8px; background: #14252acc; color: #c3d7c3; font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; }
+			.mission-strip { display: grid; grid-template-columns: .8fr 1.15fr 1fr 1.1fr; align-items: center; gap: 16px; padding: 19px 16px; border-top: 1px solid #34464d; border-bottom: 1px solid #34464d; }
+			.mission-strip > div { display: flex; flex-direction: column; gap: 7px; }
+			.mission-strip strong { color: #e4ebe0; font-size: 13px; font-weight: 500; }
+			kbd { display: inline-block; min-width: 22px; margin-right: 3px; padding: 3px 5px; border: 1px solid #526871; background: #1b2b35; color: #f2f2e7; text-align: center; font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; }
+			.record { flex-direction: row !important; align-items: center; justify-content: end; color: #92a9a5; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
+			.record-dot { flex: 0 0 auto; }
+			.page-footer { padding-top: 18px; color: #607a80; font-size: 9px; }
+			#play { width: min(100%, 1120px); }
+			.play-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; color: #8da9ae; font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .1em; }
+			.play-head a { color: #f2c36c; text-decoration: none; }
+			#game-screen { overflow: hidden; border: 8px solid #162631; background: #000; aspect-ratio: 256 / 160; }
+			pyxel-run { display: block; width: 100%; height: 100%; }
 			canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
 			.controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px 28px; padding: 16px 6px 12px; border-bottom: 1px solid #32444d; color: #adbdc1; font-size: 12px; }
-			.controls span { display: inline-flex; align-items: center; gap: 6px; }
-			kbd { min-width: 24px; padding: 4px 6px; border: 1px solid #536772; background: #1a2b35; color: #f2f4ed; text-align: center; font: 11px ui-monospace, monospace; }
-			.note { margin: 11px 0 0; color: #71868e; text-align: center; font: 11px ui-monospace, monospace; }
-			@media (max-width: 620px) { body { padding: 12px; } header { align-items: start; flex-direction: column; gap: 10px; margin-bottom: 14px; } .briefing { padding-left: 17px; } #screen { padding: 4px; } .controls { justify-content: flex-start; gap: 10px 17px; } }
+			.controls span { display: inline-flex; align-items: center; gap: 4px; }
+			.file-help { display: none; max-width: 620px; margin: 28px auto 0; padding: 20px 24px; border: 1px solid #526773; background: #162631; color: #dce7e5; line-height: 1.6; text-align: left; }
+			.file-help h2 { margin: 0 0 10px; font-size: 17px; }
+			.file-help p { margin: 8px 0; color: #a9bac0; font-size: 13px; }
+			.file-help code { display: inline-block; margin-top: 4px; padding: 7px 10px; background: #0c1720; color: #efc16d; font: 12px ui-monospace, monospace; }
+			.file-preview main { display: block; padding-top: 12vh; }
+			.file-preview #landing, .file-preview #play { display: none !important; }
+			.file-preview .file-help { display: block; }
+			[hidden] { display: none !important; }
+			@media (max-width: 760px) { main { width: min(100% - 32px, 600px); justify-content: start; padding: 20px 0 16px; } .hero { grid-template-columns: 1fr; gap: 26px; padding: 30px 0 26px; } .copy { padding-left: 5px; } h1 { margin: 15px 0 10px; font-size: clamp(62px,15vw,96px); } .description { margin: 18px 0; font-size: 14px; } .scene-frame { grid-row: 1; } .mission-strip { grid-template-columns: 1fr 1fr; row-gap: 18px; padding: 17px 5px; } .record { justify-content: start; } }
+			@media (max-width: 440px) { .status { font-size: 9px; } .page-footer { font-size: 8px; letter-spacing: .05em; } #game-screen { border-width: 3px; } .controls { justify-content: flex-start; gap: 10px 15px; } }
+			@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
 		</style>
 	</head>
 	<body>
-		<main>
-			<header>
-				<div class="identity"><span class="signal" aria-hidden="true"></span><div><p class="unit">COASTAL AIR SERVICE</p><h1>Heli FOB</h1></div></div>
-				<p class="briefing">Flight operations <span>—</span> 8 missions</p>
+		<main id="landing">
+			<header class="topline">
+				<a class="brand" href="#top"><span class="brand-pixel" aria-hidden="true"></span> HFOB</a>
+				<span class="status"><i aria-hidden="true"></i> FLIGHT CREW NEEDED</span>
 			</header>
-			<section id="screen" aria-label="Heli FOB game"><pyxel-run root="." name="main.py" gamepad="enabled"></pyxel-run></section>
-			<div class="controls" aria-label="Game controls">
-				<span><kbd>↑</kbd><kbd>↓</kbd> Collective</span><span><kbd>←</kbd><kbd>→</kbd> Cyclic</span><span><kbd>Space</kbd> Continue / take off</span><span><kbd>R</kbd> Restart mission</span>
-			</div>
-			<p class="note">Mission progress and best landings save on this device.</p>
+			<section class="hero" id="top">
+				<div class="copy">
+					<p class="eyebrow">COASTAL AIR SERVICE · 08 MISSIONS</p>
+					<h1>HELI<br /><span>FOB</span></h1>
+					<p class="description">The coast is counting on you.<br />Fly low. Bring everyone home.</p>
+					<button class="launch" id="start-flight"><span class="button-glyph" aria-hidden="true">▶</span> START FLIGHT</button>
+					<p class="launch-note">BEST WITH A KEYBOARD</p>
+				</div>
+				<div class="scene-frame">
+					<svg class="scene" viewBox="0 0 640 400" role="img" aria-label="A rescue helicopter above a moonlit coast">
+						<rect width="640" height="400" fill="#182d43"/><rect y="32" width="640" height="80" fill="#203e59"/><rect y="112" width="640" height="60" fill="#31556b"/><rect y="172" width="640" height="54" fill="#456878"/>
+						<rect x="468" y="38" width="56" height="8" fill="#f4c878"/><rect x="452" y="46" width="88" height="8" fill="#f4c878"/><rect x="444" y="54" width="96" height="24" fill="#f4c878"/><rect x="452" y="78" width="80" height="8" fill="#f4c878"/><rect x="468" y="86" width="48" height="8" fill="#f4c878"/>
+						<path d="M0 207h66v-14h24v-17h20v17h22v-28h22v28h30v-14h18v28h34v-20h20v20h33v-13h23v13h29v-25h20v25h35v-16h26v16h33v-24h24v24h43v-12h22v12h42v-27h25v27h18v37H0z" fill="#263e49"/>
+						<rect y="236" width="640" height="164" fill="#173f53"/><rect y="236" width="640" height="12" fill="#4d8790"/><rect y="260" width="640" height="6" fill="#25566a"/><rect y="300" width="640" height="5" fill="#25566a"/><rect y="348" width="640" height="7" fill="#25566a"/>
+						<path d="M0 242h84v8h40v-8h56v8h48v-8h66v8h50v-8h50v8h60v-8h48v8h45v-8h55v8h34v5H0z" fill="#83c6bc"/><rect x="46" y="278" width="106" height="4" fill="#65aeb0"/><rect x="204" y="320" width="66" height="4" fill="#65aeb0"/><rect x="424" y="286" width="132" height="4" fill="#65aeb0"/><rect x="96" y="356" width="184" height="4" fill="#65aeb0"/>
+						<path d="M400 216h166v8H400z" fill="#e4b454"/><path d="M414 224h8v20h-8zm132 0h8v20h-8z" fill="#e4b454"/><path d="M427 216v-8h112v8" fill="none" stroke="#f3d18b" stroke-width="4"/>
+						<rect x="205" y="133" width="130" height="5" fill="#e8f1d0"/><rect x="256" y="138" width="7" height="21" fill="#d9e5d1"/><rect x="236" y="157" width="106" height="30" fill="#d3d9c7"/><rect x="220" y="164" width="16" height="18" fill="#d3d9c7"/><rect x="342" y="165" width="72" height="8" fill="#d3d9c7"/><rect x="402" y="157" width="9" height="23" fill="#d3d9c7"/>
+						<rect x="244" y="164" width="19" height="14" fill="#4f8b9a"/><rect x="264" y="164" width="14" height="14" fill="#4f8b9a"/><rect x="236" y="186" width="108" height="5" fill="#e8f1d0"/><rect x="252" y="191" width="6" height="11" fill="#e8f1d0"/><rect x="326" y="191" width="6" height="11" fill="#e8f1d0"/><rect x="247" y="200" width="88" height="4" fill="#e8f1d0"/><rect x="407" y="164" width="22" height="4" fill="#e8f1d0"/><rect x="417" y="152" width="4" height="27" fill="#e8f1d0"/><rect x="410" y="147" width="18" height="4" fill="#e8f1d0"/><rect x="263" y="125" width="5" height="8" fill="#e8f1d0"/><rect x="264" y="119" width="122" height="5" fill="#e8f1d0"/><rect x="278" y="107" width="68" height="5" fill="#f4c878"/><rect x="267" y="111" width="96" height="4" fill="#f4c878"/>
+						<rect x="174" y="151" width="24" height="4" fill="#f27c67"/><rect x="178" y="159" width="18" height="4" fill="#f27c67"/><rect x="96" y="214" width="7" height="18" fill="#79a477"/><rect x="88" y="206" width="23" height="8" fill="#79a477"/><rect x="572" y="197" width="8" height="27" fill="#79a477"/><rect x="561" y="186" width="30" height="11" fill="#79a477"/>
+						<rect x="88" y="40" width="6" height="6" fill="#e8f1d0"/><rect x="154" y="76" width="4" height="4" fill="#e8f1d0"/><rect x="232" y="36" width="5" height="5" fill="#e8f1d0"/><rect x="578" y="118" width="5" height="5" fill="#e8f1d0"/><rect x="66" y="124" width="4" height="4" fill="#f4c878"/><rect x="300" y="86" width="5" height="5" fill="#e8f1d0"/>
+					</svg>
+					<span class="scene-caption">RESCUE FLIGHT / 03:47 PM</span>
+				</div>
+			</section>
+			<section class="mission-strip" aria-label="Campaign details">
+				<div><span class="label">FLIGHT PLAN</span><strong>8 missions</strong></div>
+				<div><span class="label">TERRAIN</span><strong>Coast · forest · city</strong></div>
+				<div><span class="label">CONTROLS</span><strong><kbd>↑↓</kbd> lift <kbd>←→</kbd> steer</strong></div>
+				<div class="record"><span class="record-dot" aria-hidden="true"></span> Progress saves on this device</div>
+			</section>
+			<footer class="page-footer"><span>HELI FOB / FLIGHT OPERATIONS</span><span>TAKE THE LONG WAY HOME</span></footer>
 		</main>
+		<section id="play" hidden>
+			<div class="play-head"><a href="/" id="back-home">← Heli FOB</a><span>COASTAL AIR SERVICE · FLIGHT OPERATIONS</span></div>
+			<div id="game-screen"></div>
+			<div class="controls"><span><kbd>↑</kbd><kbd>↓</kbd> Collective</span><span><kbd>←</kbd><kbd>→</kbd> Cyclic</span><span><kbd>Space</kbd> Continue / take off</span><span><kbd>R</kbd> Restart mission</span></div>
+		</section>
+		<section class="file-help" aria-live="polite">
+			<h2>Start the game through a local server</h2>
+			<p>This page was opened as a local file. Your browser blocks the game script from loading beside it in this mode.</p>
+			<p>From the project folder, run:</p><code>npm run dev</code>
+			<p>Then open <code>http://localhost:5173/</code> in your browser.</p>
+		</section>
+		<script>
+			const startButton = document.getElementById("start-flight");
+			startButton.addEventListener("click", async () => {
+				if (location.protocol === "file:") return;
+				document.getElementById("landing").hidden = true;
+				const play = document.getElementById("play");
+				play.hidden = false;
+				await customElements.whenDefined("pyxel-run");
+				const game = document.createElement("pyxel-run");
+				game.setAttribute("root", ".");
+				game.setAttribute("name", "main.py");
+				game.setAttribute("gamepad", "enabled");
+				document.getElementById("game-screen").append(game);
+			});
+			if (location.protocol !== "file:") {
+				document.getElementById("back-home").addEventListener("click", (event) => {
+					event.preventDefault();
+					location.reload();
+				});
+			}
+		</script>
 	</body>
 </html>

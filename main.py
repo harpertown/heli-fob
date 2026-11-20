@@ -232,6 +232,15 @@ class ChopperGame:
         pyxel.sounds[7].set("c2g2", "p", "64", "f", 6)
         pyxel.sounds[8].set("c3e3g3c4", "t", "5664", "n", 6)
         pyxel.sounds[9].set("a1f1d1", "s", "654", "f", 8)
+        self.rotor_audio = None
+        if window is not None:
+            try:
+                self.rotor_audio = window.Audio.new("/audio/arcade-chop.wav")
+                self.rotor_audio.loop = True
+                self.rotor_audio.preload = "auto"
+                self.rotor_audio.volume = 0.38
+            except Exception:
+                self.rotor_audio = None
         self.rotor_playing = False
         self.rotor_note = ""
         self.wind_playing = False
@@ -314,9 +323,8 @@ class ChopperGame:
         return LEVELS.index(self.level if level is None else level)
 
     def is_unlocked(self, index):
-        if index <= 0:
-            return True
-        return self.cleared[LEVELS[index - 1]]
+        # Keep the full campaign selectable during development and playtesting.
+        return 0 <= index < len(LEVELS)
 
     def is_night(self):
         return self.level == "mission3"
@@ -882,20 +890,35 @@ class ChopperGame:
 
     def update_audio(self):
         rotor_on = self.state == "flying" and self.fuel > 0
-        if not rotor_on:
-            if self.rotor_playing:
-                pyxel.stop(0)
+        if self.rotor_audio is not None:
+            self.rotor_audio.volume = 0.22 + 0.34 * self.rotor_lift
+            self.rotor_audio.playbackRate = 0.90 + 0.24 * self.rotor_lift
+            if rotor_on and not self.rotor_playing:
+                self.rotor_audio.currentTime = 0
+                try:
+                    self.rotor_audio.play()
+                    self.rotor_playing = True
+                except Exception:
+                    self.rotor_audio = None
+            elif not rotor_on and self.rotor_playing:
+                self.rotor_audio.pause()
+                self.rotor_audio.currentTime = 0
                 self.rotor_playing = False
-                self.rotor_note = ""
         else:
-            index = int(self.collective * (len(ROTOR_NOTES) - 1))
-            index = max(0, min(len(ROTOR_NOTES) - 1, index))
-            note = ROTOR_NOTES[index]
-            if note != self.rotor_note:
-                self.rotor_note = note
-                self.rotor_playing = True
-                pyxel.sounds[0].set(note + note, "t", "55", "v", 18)
-                pyxel.play(0, 0, loop=True)
+            if not rotor_on:
+                if self.rotor_playing:
+                    pyxel.stop(0)
+                    self.rotor_playing = False
+                    self.rotor_note = ""
+            else:
+                index = int(self.collective * (len(ROTOR_NOTES) - 1))
+                index = max(0, min(len(ROTOR_NOTES) - 1, index))
+                note = ROTOR_NOTES[index]
+                if note != self.rotor_note:
+                    self.rotor_note = note
+                    self.rotor_playing = True
+                    pyxel.sounds[0].set(note + note, "t", "55", "v", 18)
+                    pyxel.play(0, 0, loop=True)
 
         wind_on = self.state == "flying" and abs(self.wind) > 0.35
         if not wind_on:
